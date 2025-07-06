@@ -34,7 +34,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="prose dark:prose-invert h-screen min-h-screen w-screen min-w-screen overflow-auto">
+          <div className="prose dark:prose-invert h-screen min-h-svh w-screen min-w-screen overflow-auto">
             {children}
           </div>
         </ThemeProvider>
