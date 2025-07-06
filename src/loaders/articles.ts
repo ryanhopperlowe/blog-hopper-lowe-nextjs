@@ -1,13 +1,13 @@
-import path from "path";
-import fs from "fs";
-import parseMD from "parse-md";
-import z from "zod";
 import {
-  NotFoundError,
   ForbiddenError,
   InternalServerError,
+  NotFoundError,
 } from "@/server/errors";
+import fs from "fs";
+import parseMD from "parse-md";
+import path from "path";
 import { cache } from "react";
+import z from "zod";
 
 const articleMeta = z.object({
   title: z.string(),
@@ -15,7 +15,7 @@ const articleMeta = z.object({
   createdAt: z.date(),
   author: z.string().catch("Ryan Hopper-Lowe"),
   draft: z.boolean().catch(false),
-  ids: z.string().array().catch([]),
+  ids: z.string({ coerce: true }).array().catch([]),
 });
 
 export const articleSchema = articleMeta.extend({
