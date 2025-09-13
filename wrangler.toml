@@ -5,3 +5,9 @@
   [assets]
   directory = ".open-next/assets"
   binding = "ASSETS"
+
+  [env.preview.vars]
+  NEXT_PUBLIC_BASE_URL = "http://localhost:8787"
+
+  [env.production.vars]
+  NEXT_PUBLIC_BASE_URL = "https://blog-hopperlowe.rhopperlowe.workers.dev"
