@@ -10,7 +10,7 @@
     "lint": "next lint",
     "format": "prettier . --write",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview --env preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --env production",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
