@@ -3,9 +3,8 @@ import {
   InternalServerError,
   NotFoundError,
 } from "@/server/errors";
-import fs from "fs";
+import { attempt } from "@ryact-utils/attempt";
 import parseMD from "parse-md";
-import path from "path";
 import { cache } from "react";
 import z from "zod";
 
@@ -26,34 +25,93 @@ export const articleSchema = articleMeta.extend({
 const formatId = (val: string) =>
   val.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "");
 
-const getPath = (filename = "") =>
-  path.join(path.join(path.dirname("."), "public/articles"), filename);
+const parseFileContent = (filename: string, text: string) => {
+  const { content, metadata } = parseMD(text);
 
-const loadArticles = cache(() => {
-  const dir = fs.readdirSync(getPath());
+  const { data: meta, error } = articleMeta.safeParse(metadata);
 
-  const x = dir
-    .map((filename) => {
-      const { content, metadata } = parseMD(
-        fs.readFileSync(getPath(filename)).toString(),
-      );
-      const { data: meta, error } = articleMeta.safeParse(metadata);
+  if (error) {
+    // console.error(error.flatten().fieldErrors);
+    return null;
+  }
 
-      if (error) {
-        // console.error(error.flatten().fieldErrors);
-        return null;
-      }
+  return { ...meta, id: formatId(filename), content: content };
+};
 
-      return { ...meta, id: formatId(filename), content: content };
-    })
-    .filter((f) => !!f);
+const manifestSchema = z.object({ articles: z.string().array() });
 
-  return x;
+const tryLoadArticlesFromFS = cache(
+  attempt.create(async () => {
+    const isBuildTime = process.env.NEXT_PHASE === "phase-production-build";
+    if (!isBuildTime) throw new Error("Build Time");
+
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const getPath = (filename = "") =>
+      path.join(path.join(path.dirname("."), "public/articles"), filename);
+
+    const dir = fs.readdirSync(getPath());
+
+    return dir
+      .map((filename) => {
+        const fileText = fs.readFileSync(getPath(filename)).toString();
+        return parseFileContent(filename, fileText);
+      })
+      .filter((f) => !!f);
+  }),
+);
+
+const fetchManifest = async () => {
+  if (process.env.NEXT_PUBLIC_BASE_URL === undefined) return [];
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/articles/manifest.json`,
+    { cache: "force-cache" },
+  );
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  const data = await res.json();
+
+  return manifestSchema.parse(data).articles;
+};
+
+const fetchFile = async (fileName: string) => {
+  if (process.env.NEXT_PUBLIC_BASE_URL === undefined)
+    throw new Error("No base url env variable");
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/articles/${fileName}`,
+    { cache: "force-cache" },
+  );
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch file: " + fileName);
+  }
+
+  return parseFileContent(fileName, await res.text());
+};
+
+const loadArticles = cache(async () => {
+  const articlesFromFs = await tryLoadArticlesFromFS();
+
+  if (articlesFromFs.ok) {
+    return articlesFromFs.data;
+  }
+
+  const fileNames = await fetchManifest();
+
+  const articles = await Promise.all(fileNames.map(fetchFile));
+
+  return articles.filter((x) => !!x);
 });
 
 export const getArticle = cache(async (id: string) => {
   try {
-    const articles = loadArticles();
+    const articles = await loadArticles();
     const article = articles.find(
       (article) => article.id === id || article.ids.includes(id),
     );
@@ -74,7 +132,7 @@ export const getArticle = cache(async (id: string) => {
 
 export const getArticles = cache(async () => {
   try {
-    return loadArticles()
+    return (await loadArticles())
       .filter((a) => process.env.NODE_ENV === "development" || !a.draft)
       .sort(
         (a, b) =>
