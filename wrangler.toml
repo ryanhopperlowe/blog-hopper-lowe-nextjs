@@ -1,13 +1,12 @@
-  main = ".open-next/worker.js"
-  name = "blog-hopperlowe"
-  compatibility_date = "2025-03-25"
-  compatibility_flags = ["nodejs_compat"]
-  [assets]
-  directory = ".open-next/assets"
-  binding = "ASSETS"
+main = ".open-next/worker.js"
+name = "blog-hopperlowe"
+compatibility_date = "2025-03-25"
+compatibility_flags = ["nodejs_compat"]
 
-  [env.preview.vars]
-  NEXT_PUBLIC_BASE_URL = "http://localhost:8787"
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
 
-  [env.production.vars]
-  NEXT_PUBLIC_BASE_URL = "https://blog-hopperlowe.rhopperlowe.workers.dev"
+# wrangler.toml (wrangler v3.88.0^)
+[observability.logs]
+enabled = true

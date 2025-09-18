@@ -1,5 +1,31 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {};
+const getConfig = (): NextConfig => {
+  const isDev = process.env.NODE_ENV === "development";
 
-export default nextConfig;
+  const devConfigTurbo: NextConfig = {
+    turbopack: {
+      rules: {
+        "*.md": {
+          loaders: ["raw-loader"],
+          as: "*.ts",
+        },
+      },
+    },
+  };
+
+  const prodConfigWebpack: NextConfig = {
+    webpack: (config) => {
+      config.module.rules.push({
+        test: /\.(md)$/i,
+        loader: "raw-loader",
+      });
+
+      return config;
+    },
+  };
+
+  return isDev ? { ...devConfigTurbo } : { ...prodConfigWebpack };
+};
+
+export default getConfig();

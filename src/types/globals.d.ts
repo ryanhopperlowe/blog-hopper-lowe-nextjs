@@ -3,4 +3,9 @@ declare global {
   type Todo = any;
 }
 
+declare module "*.md" {
+  const content: string;
+  export default content;
+}
+
 export {};
